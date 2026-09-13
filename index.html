@@ -78,7 +78,7 @@
         const addressInput = document.getElementById('walletAddress').value.trim();
         const resultDiv = document.getElementById('result');
         
-        resultDiv.innerHTML = "Загрузка данных...";
+        resultDiv.innerHTML = "Загрузка данных из блокчейна...";
         resultDiv.className = "result";
 
         if (!addressInput || addressInput.length < 32 || addressInput.length > 44) {
@@ -87,8 +87,11 @@
             return;
         }
 
-        // Чистый и надежный RPC-сервер без посредников
-        const rpcUrl = "https://allthatnode.com";
+        // Правильные полные технические адреса блокчейн-узлов (RPC)
+        const rpcEndpoints = [
+            "https://solana.com",
+            "https://allthatnode.com"
+        ];
 
         const requestData = {
             jsonrpc: "2.0",
@@ -97,30 +100,34 @@
             params: [addressInput]
         };
 
-        try {
-            const response = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestData)
-            });
+        let success = false;
 
-            if (!response.ok) {
-                throw new Error(`Ошибка RPC: ${response.status}`);
+        for (let rpcUrl of rpcEndpoints) {
+            try {
+                const response = await fetch(rpcUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                if (data.error) continue;
+
+                const lamports = data.result.value;
+                const sol = lamports / 1000000000;
+
+                resultDiv.innerHTML = `Баланс: <span style="color: #14F195;">${sol.toFixed(4)} SOL</span>`;
+                success = true;
+                break; 
+            } catch (e) {
+                console.warn(`Узел ${rpcUrl} временно недоступен, пробуем следующий...`);
             }
+        }
 
-            const data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
-
-            const lamports = data.result.value;
-            const sol = lamports / 1000000000;
-
-            resultDiv.innerHTML = `Баланс: <span style="color: #14F195;">${sol.toFixed(4)} SOL</span>`;
-
-        } catch (error) {
-            console.error("Ошибка:", error);
-            resultDiv.innerHTML = "Не удалось подключиться к блокчейну. Убедитесь, что сайт запущен через локальный сервер (localhost).";
+        if (!success) {
+            resultDiv.innerHTML = "Ошибка: не удалось подключиться к серверам Solana. Попробуйте позже.";
             resultDiv.className = "result error";
         }
     }
