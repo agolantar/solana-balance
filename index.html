@@ -78,7 +78,7 @@
         const addressInput = document.getElementById('walletAddress').value.trim();
         const resultDiv = document.getElementById('result');
         
-        resultDiv.innerHTML = "Загрузка данных из блокчейна...";
+        resultDiv.innerHTML = "Загрузка...";
         resultDiv.className = "result";
 
         if (!addressInput || addressInput.length < 32 || addressInput.length > 44) {
@@ -87,11 +87,8 @@
             return;
         }
 
-        // Правильные полные технические адреса блокчейн-узлов (RPC) Solana
-        const rpcEndpoints = [
-            "https://solana.com",
-            "https://blink.xyz"
-        ];
+        // Один точный официальный технический RPC-сервер
+        const rpcUrl = "https://solana.com";
 
         const requestData = {
             jsonrpc: "2.0",
@@ -100,40 +97,32 @@
             params: [addressInput]
         };
 
-        let success = false;
+        try {
+            const response = await fetch(rpcUrl, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json" 
+                },
+                body: JSON.stringify(requestData)
+            });
 
-        for (let rpcUrl of rpcEndpoints) {
-            try {
-                const response = await fetch(rpcUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestData)
-                });
-
-                if (!response.ok) {
-                    console.warn(`Узел ${rpcUrl} вернул статус ${response.status}`);
-                    continue;
-                }
-
-                const data = await response.json();
-                if (data.error) {
-                    console.warn(`Узел ${rpcUrl} вернул ошибку RPC:`, data.error);
-                    continue;
-                }
-
-                const lamports = data.result.value;
-                const sol = lamports / 1000000000;
-
-                resultDiv.innerHTML = `Баланс: <span style="color: #14F195;">${sol.toFixed(4)} SOL</span>`;
-                success = true;
-                break; 
-            } catch (e) {
-                console.warn(`Не удалось подключиться к ${rpcUrl}, пробуем следующий...`);
+            if (!response.ok) {
+                throw new Error(`Ошибка сети: ${response.status}`);
             }
-        }
 
-        if (!success) {
-            resultDiv.innerHTML = "Ошибка: не удалось получить данные из блокчейна. Попробуйте еще раз.";
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            const lamports = data.result.value;
+            const sol = lamports / 1000000000;
+
+            resultDiv.innerHTML = `Баланс: <span style="color: #14F195;">${sol.toFixed(4)} SOL</span>`;
+
+        } catch (error) {
+            console.error("Критическая ошибка:", error);
+            resultDiv.innerHTML = "Не удалось загрузить баланс. Попробуйте обновить страницу.";
             resultDiv.className = "result error";
         }
     }
