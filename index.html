@@ -87,10 +87,10 @@
             return;
         }
 
-        // Правильные полные технические адреса блокчейн-узлов (RPC)
+        // Правильные полные технические адреса блокчейн-узлов (RPC) Solana
         const rpcEndpoints = [
             "https://solana.com",
-            "https://allthatnode.com"
+            "https://blink.xyz"
         ];
 
         const requestData = {
@@ -110,10 +110,16 @@
                     body: JSON.stringify(requestData)
                 });
 
-                if (!response.ok) continue;
+                if (!response.ok) {
+                    console.warn(`Узел ${rpcUrl} вернул статус ${response.status}`);
+                    continue;
+                }
 
                 const data = await response.json();
-                if (data.error) continue;
+                if (data.error) {
+                    console.warn(`Узел ${rpcUrl} вернул ошибку RPC:`, data.error);
+                    continue;
+                }
 
                 const lamports = data.result.value;
                 const sol = lamports / 1000000000;
@@ -122,12 +128,12 @@
                 success = true;
                 break; 
             } catch (e) {
-                console.warn(`Узел ${rpcUrl} временно недоступен, пробуем следующий...`);
+                console.warn(`Не удалось подключиться к ${rpcUrl}, пробуем следующий...`);
             }
         }
 
         if (!success) {
-            resultDiv.innerHTML = "Ошибка: не удалось подключиться к серверам Solana. Попробуйте позже.";
+            resultDiv.innerHTML = "Ошибка: не удалось получить данные из блокчейна. Попробуйте еще раз.";
             resultDiv.className = "result error";
         }
     }
